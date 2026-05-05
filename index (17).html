@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Go Home!">
+<title>Go Home! 🐾</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+button,[onclick]{touch-action:manipulation;-webkit-touch-callout:none}
+button{-webkit-appearance:none}
+:root{
+  --navy:#0D1B2A;--navy2:#162236;--teal:#3DBFAA;--teal-dk:#2A9E8C;--teal-lt:#E6F8F5;
+  --coral:#FF6B6B;--coral-lt:#FFF0F0;--white:#FFFFFF;--offwhite:#F4F7FA;
+  --border:#DDE6EE;--text:#0D1B2A;--text2:#4A5568;--muted:#8A9BB0;
+  --shadow:0 4px 20px rgba(13,27,42,.10);--shadow-lg:0 8px 40px rgba(13,27,42,.18);
+  --r:16px;--r-sm:10px;
+}
+body{font-family:'Sora',sans-serif;background:var(--offwhite);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* AD BANNERS */
+.ad-banner{background:linear-gradient(135deg,#FFF8E7,#FFF3D0);border:1px solid #F0D060;border-radius:var(--r);padding:14px 16px;margin:0 16px 4px;display:flex;align-items:center;gap:12px;position:relative}
+.ad-badge{position:absolute;top:6px;right:8px;font-size:9px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.ad-icon{width:44px;height:44px;border-radius:10px;object-fit:cover;background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px}
+.ad-text strong{font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:2px}
+.ad-text span{font-size:11px;color:var(--muted)}
+.ad-cta{margin-left:auto;background:var(--navy);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:sans-serif;flex-shrink:0}
+
+.screen{max-width:480px;margin:0 auto;position:relative}
+body{background:#E8EDF2}
+@media(min-width:480px){body::before{content:'';position:fixed;inset:0;background:#E8EDF2;z-index:-1}}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+
+/* TOPBAR */
+.topbar{background:var(--navy);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-paw{width:36px;height:36px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-text{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--white)}
+.logo-text span{color:var(--teal)}
+.topbar-right{margin-left:auto;display:flex;gap:8px}
+.icon-btn{background:rgba(255,255,255,.1);border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;position:relative;transition:background .2s}
+.icon-btn:active{background:rgba(255,255,255,.22)}
+.notif-dot{position:absolute;top:-2px;right:-2px;width:9px;height:9px;background:var(--coral);border-radius:50%;border:2px solid var(--navy);display:none}
+.notif-dot.show{display:block}
+.back-btn{background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:8px 14px;color:var(--white);font-size:13px;font-family:'Sora',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:38px}
+.back-btn:active{background:rgba(255,255,255,.2)}
+
+/* TOAST */
+.toast{position:fixed;top:72px;left:12px;right:12px;background:var(--navy);color:white;border-radius:var(--r);padding:14px 16px;z-index:999;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-lg);transform:translateY(-150px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);border-left:4px solid var(--teal)}
+.toast.show{transform:translateY(0)}
+.toast-icon{font-size:22px;flex-shrink:0}
+.toast-body p{font-size:13px;font-weight:600;margin-bottom:2px}
+.toast-body span{font-size:11px;color:rgba(255,255,255,.55)}
+.toast-x{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.45);font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+
+/* MATCHING OVERLAY */
+.m-overlay{position:fixed;inset:0;background:rgba(13,27,42,.88);z-index:800;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;backdrop-filter:blur(6px)}
+.m-overlay.show{display:flex}
+.m-spinner{width:52px;height:52px;border:4px solid rgba(61,191,170,.2);border-top-color:var(--teal);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.m-txt{color:white;font-size:14px;font-weight:500;text-align:center;line-height:1.7}
+.m-txt span{color:var(--teal)}
+
+/* HOME */
+.home-hero{background:var(--navy);padding:26px 20px 32px;position:relative;overflow:hidden}
+.home-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;background:var(--teal);opacity:.07;border-radius:50%}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(61,191,170,.15);border:1px solid rgba(61,191,170,.3);color:var(--teal);padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;margin-bottom:14px}
+.hero-h1{font-family:'Clash Display',sans-serif;font-size:28px;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:8px}
+.hero-h1 span{color:var(--teal)}
+.hero-p{font-size:12px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
+.hero-stats{display:flex;gap:24px}
+.hstat-n{font-family:'Clash Display',sans-serif;font-size:24px;font-weight:700;color:var(--teal)}
+.hstat-l{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px}
+
+.home-body{padding:20px}
+.section-lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.act-card{background:var(--white);border-radius:var(--r);padding:20px 16px;cursor:pointer;border:none;box-shadow:0 6px 24px rgba(13,27,42,.12);transition:all .2s;position:relative;overflow:hidden}
+.act-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.act-card.lost::after{background:linear-gradient(90deg,var(--coral),#FF8E8E)}
+.act-card.found::after{background:linear-gradient(90deg,var(--teal),#5DD6C8)}
+.act-card:active{transform:scale(.97)}
+.act-e{font-size:26px;margin-bottom:10px;display:block}
+.act-t{font-family:'Clash Display',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px}
+.act-card.lost .act-t{color:var(--coral)}
+.act-card.found .act-t{color:var(--teal-dk)}
+.act-d{font-size:11px;color:var(--muted);line-height:1.4}
+.sec-row{display:flex;gap:10px}
+.sec-btn{flex:1;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:13px 10px;font-size:13px;font-weight:500;font-family:'Sora',sans-serif;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:var(--shadow)}
+.sec-btn:active{transform:scale(.97)}
+
+/* FORM */
+#screen-form .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px 30px}
+.type-sw{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px;background:var(--white);border-radius:var(--r-sm);padding:4px;border:1.5px solid var(--border)}
+.tsw{padding:10px 8px;border-radius:8px;border:none;background:transparent;font-size:12px;font-weight:500;font-family:'Sora',sans-serif;cursor:pointer;transition:all .18s;color:var(--muted)}
+.tsw.lost.on{background:var(--coral);color:white}
+.tsw.found.on{background:var(--teal);color:white}
+.form-hero{border-radius:var(--r);padding:16px;margin-bottom:18px;display:flex;align-items:center;gap:14px}
+.form-hero.lost{background:var(--coral-lt);border:1.5px solid rgba(255,107,107,.2)}
+.form-hero.found{background:var(--teal-lt);border:1.5px solid rgba(61,191,170,.2)}
+.fh-icon{font-size:34px}
+.fh-title{font-family:'Clash Display',sans-serif;font-size:16px;font-weight:600}
+.form-hero.lost .fh-title{color:var(--coral)}
+.form-hero.found .fh-title{color:var(--teal-dk)}
+.fh-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.warn{background:#FFFBEA;border:1px solid #F0D060;border-radius:var(--r-sm);padding:11px 13px;margin-bottom:18px;display:flex;gap:8px}
+.warn p{font-size:11px;color:#7A5A00;line-height:1.6}
+.fg{margin-bottom:16px}
+.fl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.req{color:var(--coral)}
+.fhint{font-size:10px;color:var(--muted);margin-left:auto}
+.finp,.fsel,.ftxa{width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;font-size:14px;font-family:'Sora',sans-serif;color:var(--text);outline:none;transition:border-color .18s;-webkit-appearance:none;appearance:none}
+.finp:focus,.fsel:focus,.ftxa:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(61,191,170,.1)}
+.ftxa{resize:vertical;min-height:78px;line-height:1.6}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.color-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.co{width:38px;height:38px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s;display:flex;align-items:center;justify-content:center;font-size:14px}
+.co.sel{border-color:var(--navy);transform:scale(1.15)}
+.co:active{transform:scale(.88)}
+.sz-grid{display:flex;gap:8px;margin-top:6px}
+.so{flex:1;padding:10px 4px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);text-align:center;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);transition:all .15s;line-height:1.5}
+.so.sel{background:var(--teal-lt);border-color:var(--teal);color:var(--teal-dk)}
+.photo-zone{background:var(--white);border:2px dashed var(--border);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:all .18s;margin-bottom:8px}
+.photo-zone:active{border-color:var(--teal);background:var(--teal-lt)}
+.pz-icon{font-size:28px;margin-bottom:6px}
+.pz-txt{font-size:12px;color:var(--muted);line-height:1.5}
+.pz-txt strong{color:var(--teal)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid var(--border)}
+.geo-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.geo-btn{background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:var(--r-sm);padding:10px 14px;font-size:12px;font-weight:500;font-family:'Sora',sans-serif;color:var(--teal-dk);cursor:pointer;white-space:nowrap}
+.geo-btn:active{background:var(--teal);color:white}
+.geo-st{font-size:11px;color:var(--muted)}
+.submit-bar{display:none}
+.sub-btn{width:100%;background:linear-gradient(135deg,var(--teal),var(--teal-dk));color:white;border:none;border-radius:var(--r-sm);padding:16px;font-size:15px;font-weight:700;font-family:'Sora',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(61,191,170,.4);letter-spacing:.3px}
+.sub-btn:active{background:var(--navy2);transform:scale(.98)}
+.sub-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* BROWSE */
+.filter-bar{background:var(--white);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.chip{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-size:11px;font-weight:500;font-family:'Sora',sans-serif;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s}
+.chip.ca{background:var(--navy);border-color:var(--navy);color:white}
+.chip.cl{background:var(--coral);border-color:var(--coral);color:white}
+.chip.cf{background:var(--teal);border-color:var(--teal);color:white}
+.chip.cs{background:var(--navy);border-color:var(--navy);color:white}
+.cards-list{padding:16px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.pcard{background:var(--white);border-radius:var(--r);overflow:hidden;box-shadow:0 4px 24px rgba(13,27,42,.13);border:none}
+.pcard-img{position:relative;height:165px;background:var(--offwhite);display:flex;align-items:center;justify-content:center;font-size:54px}
+.pcard-img img{width:100%;height:165px;object-fit:cover;position:absolute;inset:0}
+.pcard-badge{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;z-index:1}
+.bl{background:var(--coral);color:white}
+.bf{background:var(--teal);color:white}
+.pcard-body{padding:14px 16px}
+.pcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pcard-name{font-family:'Clash Display',sans-serif;font-size:17px;font-weight:600}
+.pcard-dt{font-size:10px;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.tag{padding:3px 9px;background:var(--offwhite);border-radius:8px;font-size:10px;color:var(--text2);font-weight:500}
+.pcard-zone{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:3px}
+.pcard-desc{font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.mini-map{width:100%;height:105px;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px}
+.pcard-actions{display:flex;gap:8px}
+.btn-ai{flex:1;background:linear-gradient(135deg,var(--navy),#1E3A5F);color:white;border:none;border-radius:var(--r-sm);padding:11px;font-size:12px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(13,27,42,.25)}
+.btn-ai:active{background:var(--navy2);transform:scale(.97)}
+.btn-rpt{background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif}
+.empty-st{text-align:center;padding:60px 24px;color:var(--muted)}
+.empty-st div{font-size:44px;margin-bottom:12px}
+.empty-st p{font-size:13px}
+
+/* MATCH */
+#screen-match{background:var(--offwhite)}
+.match-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px}
+.match-hdr{background:var(--navy);border-radius:var(--r);padding:24px 20px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden}
+.match-hdr::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:var(--teal);opacity:.09;border-radius:50%}
+.match-paws{display:flex;justify-content:center;align-items:center;gap:14px;margin-bottom:14px}
+.mpaw{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;animation:pulse 1.2s infinite alternate}
+.mpaw.lo{background:rgba(255,107,107,.18)}
+.mpaw.fo{background:rgba(61,191,170,.18)}
+@keyframes pulse{from{transform:scale(.94)}to{transform:scale(1.07)}}
+.mheart{font-size:22px;animation:hb .8s infinite alternate}
+@keyframes hb{from{transform:scale(.85)}to{transform:scale(1.2)}}
+.match-ttl{font-family:'Clash Display',sans-serif;font-size:25px;font-weight:700;color:var(--white);margin-bottom:5px}
+.match-sub{font-size:12px;color:rgba(255,255,255,.45);line-height:1.6}
+.score-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.score-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.score-lbl{font-size:12px;font-weight:600;color:var(--text2)}
+.score-n{font-family:'Clash Display',sans-serif;font-size:30px;font-weight:700;color:var(--teal)}
+.score-bar{height:7px;background:var(--offwhite);border-radius:4px;overflow:hidden;margin-bottom:12px}
+.score-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-dk));border-radius:4px;width:0%;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.reasons{display:flex;flex-direction:column;gap:6px}
+.rrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.rdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--teal)}
+.rdot.neg{background:var(--coral)}
+.safety{background:#FFFBEA;border:1px solid #F0D060;border-radius:var(--r);padding:14px;margin-bottom:14px}
+.safety-t{font-size:13px;font-weight:600;color:#7A5A00;margin-bottom:5px}
+.safety-p{font-size:11px;color:#7A5A00;line-height:1.6}
+.btn-contact{width:100%;background:var(--teal);color:white;border:none;border-radius:var(--r-sm);padding:15px;font-size:14px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-contact:active{background:var(--teal-dk);transform:scale(.98)}
+.btn-more{width:100%;background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif}
+
+/* MAP */
+#fullMap{flex:1;min-height:500px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(13,27,42,.6);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal-sh{background:var(--white);border-radius:20px 20px 0 0;padding:22px 20px 38px;width:100%;max-width:480px}
+.modal-hndl{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal-ttl{font-family:'Clash Display',sans-serif;font-size:18px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.modal-wrn{background:var(--coral-lt);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:16px;border:1px solid rgba(255,107,107,.15)}
+.modal-wrn p{font-size:11px;color:var(--coral);line-height:1.6}
+.wa-btn{width:100%;background:#25D366;color:white;border:none;border-radius:var(--r-sm);padding:14px;font-size:14px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+.wa-btn:active{background:#1da851}
+.modal-cancel{width:100%;background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon">🐾</div>
+  <div class="toast-body"><p id="toastTitle"></p><span id="toastSub"></span></div>
+  <button class="toast-x" id="toastX" onclick="document.getElementById('toast').classList.remove('show')">×</button>
+</div>
+
+<!-- MATCHING OVERLAY -->
+<div class="m-overlay" id="mOverlay">
+  <div class="m-spinner"></div>
+  <div class="m-txt">Analizando con IA...<br><span>Comparando contra todos los casos activos</span></div>
+</div>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="topbar">
+    <div class="logo-wrap"><div class="logo-paw">🐾</div><div class="logo-text">Go <span>Home!</span></div></div>
+    <div class="topbar-right"><button class="icon-btn" id="btnNotif" onclick="requestNotif()">🔔<div class="notif-dot" id="notifDot"></div></button></div>
+  </div>
+  <div class="home-hero">
+    <div class="hero-badge">🤖 IA + Geolocalización</div>
+    <div class="hero-h1">Cada mascota merece volver a <span>casa</span></div>
+    <div class="hero-p">Publicá o buscá mascotas perdidas. La IA hace el matching automático al instante.</div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hstat-n" id="sLost">0</div><div class="hstat-l">Perdidas</div></div>
+      <div class="hstat"><div class="hstat-n" id="sFound">0</div><div class="hstat-l">Encontradas</div></div>
+      <div class="hstat"><div class="hstat-n" id="sReunited">0</div><div class="hstat-l">Reunidas 🎉</div></div>
+    </div>
+  </div>
+  <div class="home-body">
+    <div class="section-lbl">¿Qué pasó?</div>
+    <div class="act-grid">
+      <div class="act-card lost" id="btnGoLost" onclick="setType('lost');showScreen('form')">
+        <span class="act-e">😢</span>
+        <div class="act-t">Perdí mi mascota</div>
+        <div class="act-d">Publicá todos los datos y la IA busca coincidencias al instante</div>
+      </div>
+      <div class="act-card found" id="btnGoFound" onclick="setType('found');showScreen('form')">
+        <span class="act-e">🏠</span>
+        <div class="act-t">Encontré una mascota</div>
+        <div class="act-d">Cargá solo lo que ves y la IA encuentra al dueño automáticamente</div>
+      </div>
+    </div>
+    <div class="sec-row">
+      <button class="sec-btn" id="btnBrowse" onclick="showScreen('browse')">🔍 Ver publicaciones</button>
+      <button class="sec-btn" id="btnMap" onclick="showScreen('map')">🗺️ Mapa</button>
+    </div>
+    <div style="text-align:center;padding:8px"><button onclick="openAdmin()" style="background:none;border:none;font-size:10px;color:rgba(255,255,255,.2);cursor:pointer;font-family:sans-serif">Admin</button></div>
+</div>
+
+<!-- FORM -->
+<div id="screen-form" class="screen">
+  <div class="topbar">
+    <div class="logo-wrap"><div class="logo-paw">🐾</div><div class="logo-text">Go <span>Home!</span></div></div>
+    <div class="topbar-right"><button class="back-btn" data-back="home" onclick="showScreen('home')">← Volver</button></div>
+  </div>
+  <div class="scroll-area">
+    <div class="type-sw">
+      <button class="tsw lost" id="tswL" onclick="setType('lost')">😢 Perdí mi mascota</button>
+      <button class="tsw found" id="tswF" onclick="setType('found')">🏠 Encontré una</button>
+    </div>
+    <div class="form-hero lost" id="formHero">
+      <div class="fh-icon" id="fhIcon">😢</div>
+      <div><div class="fh-title" id="fhTitle">Perdí a mi mascota</div><div class="fh-sub" id="fhSub">Completá todos los datos que puedas</div></div>
+    </div>
+    <div class="warn"><p>⚠️ <strong>Importante:</strong> Nunca pagues dinero para recuperar tu mascota. Si alguien te lo pide, es una estafa. Reportalo de inmediato.</p></div>
+
+    <!-- FOTOS -->
+    <div class="fg">
+      <div class="fl">📷 Fotos <span class="fhint">Hasta 4 fotos</span></div>
+      <label for="photoInput" style="display:block;cursor:pointer">
+        <div class="photo-zone" id="photoZone"><div class="pz-icon">📸</div><div class="pz-txt">Tocá para subir fotos<br><strong>La IA detecta raza, color y hace matching visual</strong></div></div>
+      </label>
+      <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)">
+      <div class="thumbs" id="thumbsWrap"></div>
+      <!-- Detect breed button - shown after photo upload -->
+      <div id="detectBreedWrap" style="display:none;margin-top:8px">
+        <button id="detectBreedBtn" onclick="detectBreedFromBtn()" style="width:100%;background:var(--teal);color:white;border:none;border-radius:var(--r-sm);padding:10px;font-size:13px;font-weight:600;font-family:sans-serif;cursor:pointer">
+          🔍 Analizar raza con IA
+        </button>
+      </div>
+      <div id="aiAnalyzing" style="display:none;font-size:11px;color:var(--muted);margin-top:6px;text-align:center">🔍 Analizando foto con IA...</div>
+      <div id="aiPhotoResult" style="display:none;background:var(--teal-lt);border:1px solid var(--teal);border-radius:var(--r-sm);padding:10px 14px;margin-top:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--teal-dk);margin-bottom:6px">🤖 IA detectó:</div>
+        <div id="aiBreedText" style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6"></div>
+        <button id="aiApplyBtn" style="background:var(--teal);color:white;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-family:sans-serif;cursor:pointer;width:100%">✅ Aplicar sugerencias al formulario</button>
+      </div>
+    </div>
+
+    <!-- ESPECIE -->
+    <div class="fg">
+      <div class="fl">Especie <span class="req">*</span></div>
+      <select class="fsel" id="fSpecies"><option value="">Seleccionar...</option><option value="Perro">🐕 Perro</option><option value="Gato">🐈 Gato</option></select>
+    </div>
+
+    <!-- COLOR -->
+    <div class="fg">
+      <div class="fl">Color principal <span class="req">*</span></div>
+      <div class="color-grid" id="colorGrid">
+        <div class="co" data-color="Negro" style="background:#1a1a1a" title="Negro"></div>
+        <div class="co" data-color="Blanco" style="background:#f0f0f0;border:1px solid #ccc" title="Blanco">⬜</div>
+        <div class="co" data-color="Marrón" style="background:#7B3F00" title="Marrón"></div>
+        <div class="co" data-color="Dorado" style="background:#DAA520" title="Dorado"></div>
+        <div class="co" data-color="Gris" style="background:#808080" title="Gris"></div>
+        <div class="co" data-color="Naranja" style="background:#CC5500" title="Naranja"></div>
+        <div class="co" data-color="Atigrado" style="background:repeating-linear-gradient(45deg,#7B3F00,#7B3F00 4px,#DAA520 4px,#DAA520 8px)" title="Atigrado">🐯</div>
+        <div class="co" data-color="Manchado" style="background:linear-gradient(135deg,#1a1a1a 50%,#f0f0f0 50%)" title="Manchado"></div>
+      </div>
+      <input class="finp" id="fColorTxt" placeholder="O escribí el color..." style="margin-top:8px">
+    </div>
+
+    <!-- TAMAÑO -->
+    <div class="fg">
+      <div class="fl">Tamaño</div>
+      <div class="sz-grid" id="sizeGrid">
+        <div class="so" data-size="Pequeño">Pequeño<br><span style="font-size:9px;color:var(--muted)">menos de 10kg</span></div>
+        <div class="so" data-size="Mediano">Mediano<br><span style="font-size:9px;color:var(--muted)">10 a 25kg</span></div>
+        <div class="so" data-size="Grande">Grande<br><span style="font-size:9px;color:var(--muted)">más de 25kg</span></div>
+      </div>
+    </div>
+
+    <!-- RAZA y NOMBRE - solo para quien perdió -->
+    <div id="lostExtra">
+      <div class="fg"><div class="fl">Raza <span style="font-size:10px;color:var(--teal);font-weight:400">(opcional - la IA lo detecta)</span></div><input class="finp" id="fBreed" placeholder="Ej: Labrador, Mestizo..."><div id="breedHint" style="font-size:11px;color:var(--muted);margin-top:4px;min-height:16px"></div></div>
+      <div class="fg"><div class="fl">Nombre de la mascota</div><input class="finp" id="fName" placeholder="Ej: Rocky"></div>
+    </div>
+    <!-- UBICACION COMPLETA -->
+    <div class="fg">
+      <div class="fl">Ubicación <span class="req">*</span></div>
+      <button id="geoBtn" onclick="getLocation()" style="width:100%;background:var(--teal);color:white;border:none;border-radius:var(--r-sm);padding:12px;font-size:13px;font-weight:600;font-family:sans-serif;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px">📍 Usar mi ubicación GPS actual</button>
+      <div id="geoSt" style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center;min-height:16px"></div>
+      <div style="background:var(--offwhite);border-radius:var(--r-sm);padding:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px">O ingresá la dirección manualmente:</div>
+        <input class="finp" id="fStreet" placeholder="Calle y altura (Ej: Av. Corrientes 1234)" style="margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <input class="finp" id="fCity" placeholder="Ciudad" style="margin-bottom:0">
+          <input class="finp" id="fCountry" placeholder="País" style="margin-bottom:0">
+        </div>
+        <input class="finp" id="fZone" placeholder="Barrio / Zona (Ej: Palermo)" style="margin-bottom:0">
+      </div>
+      <div id="autocomplete-list" style="background:white;border:1.5px solid var(--teal);border-radius:var(--r-sm);max-height:180px;overflow-y:auto;display:none;margin-top:4px;box-shadow:var(--shadow)"></div>
+      <div id="locationPreview" style="display:none;margin-top:10px">
+        <div id="locationPreviewMap" style="width:100%;height:120px;border-radius:var(--r-sm);border:1.5px solid var(--teal);overflow:hidden"></div>
+        <div id="locationPreviewLabel" style="font-size:11px;color:var(--teal-dk);margin-top:4px;font-weight:500"></div>
+      </div>
+    </div>
+
+    <!-- DESCRIPCIÓN -->
+    <div class="fg">
+      <div class="fl">Descripción <span class="req">*</span><span class="fhint" id="descHint">Lo que podés ver</span></div>
+      <textarea class="ftxa" id="fDesc" placeholder="Describí lo que podés ver: collar, manchas, cicatrices, comportamiento..."></textarea>
+    </div>
+
+    <!-- SOLO QUIEN PERDIÓ -->
+    <div id="lostHealth">
+      <div class="fg"><div class="fl">Salud / Dieta especial</div><textarea class="ftxa" id="fHealth" placeholder="Medicación, alergias, condiciones..." style="min-height:60px"></textarea></div>
+      <div class="fg"><div class="fl">Chip / Señas no visibles</div><input class="finp" id="fChip" placeholder="Nro de chip, tatuaje u otras señas..."></div>
+    </div>
+
+    <!-- CONTACTO -->
+    <div class="fg"><div class="fl">Tu nombre <span class="req">*</span></div><input class="finp" id="fOwner" placeholder="Nombre de contacto"></div>
+    <div class="fg"><div class="fl">WhatsApp <span class="req">*</span><span class="fhint">Sin 0 ni 15</span></div><input class="finp" type="tel" id="fPhone" placeholder="Ej: 2236123456"></div>
+    <!-- SUBMIT inside scroll - fixes iOS Safari fixed position bug -->
+    <div style="margin-top:10px;margin-bottom:20px">
+      <button class="sub-btn" id="submitBtn" onclick="submitForm()" style="width:100%;background:#0D1B2A;color:white;border:none;border-radius:10px;padding:16px;font-size:15px;font-weight:600;font-family:sans-serif">
+        Publicar y buscar matches
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- BROWSE -->
+<div id="screen-browse" class="screen">
+  <div class="topbar">
+    <div class="logo-wrap"><div class="logo-paw">🐾</div><div class="logo-text">Go <span>Home!</span></div></div>
+    <div class="topbar-right"><button class="back-btn" data-back="home" onclick="showScreen('home')">← Inicio</button></div>
+  </div>
+  <div class="filter-bar">
+    <button class="chip ca" id="chipAll" onclick="setFilter('all')">Todos</button>
+    <button class="chip" id="chipLost" onclick="setFilter('lost')">😢 Perdidos</button>
+    <button class="chip" id="chipFound" onclick="setFilter('found')">🏠 Encontrados</button>
+    <button class="chip" id="chipDog" onclick="setFilter('dog')">🐕 Perros</button>
+    <button class="chip" id="chipCat" onclick="setFilter('cat')">🐈 Gatos</button>
+  </div>
+  <div class="cards-list" id="cardsGrid"></div>
+</div>
+
+<!-- MAP -->
+<div id="screen-map" class="screen">
+  <div class="topbar">
+    <div class="logo-wrap"><div class="logo-paw">🐾</div><div class="logo-text">Go <span>Home!</span></div></div>
+    <div class="topbar-right"><button class="back-btn" data-back="home" onclick="showScreen('home')">← Inicio</button></div>
+  </div>
+  <div id="fullMap"></div>
+</div>
+
+<!-- MATCH -->
+<div id="screen-match" class="screen">
+  <div class="topbar">
+    <div class="logo-wrap"><div class="logo-paw">🐾</div><div class="logo-text">Go <span>Home!</span></div></div>
+    <div class="topbar-right"><button class="back-btn" data-back="browse" onclick="showScreen('browse')">← Volver</button></div>
+  </div>
+  <div class="match-scroll">
+    <div class="match-hdr">
+      <div class="match-paws"><div class="mpaw lo">🐾</div><div class="mheart">❤️</div><div class="mpaw fo">🏠</div></div>
+      <div class="match-ttl">¡Posible Match!</div>
+      <div class="match-sub" id="matchSub">La IA encontró coincidencias entre estas publicaciones</div>
+    </div>
+    <div class="score-card">
+      <div class="score-top"><div class="score-lbl">Similitud estimada por IA</div><div class="score-n" id="scoreN">—</div></div>
+      <div class="score-bar"><div class="score-fill" id="scoreFill"></div></div>
+      <div class="reasons" id="reasons"></div>
+    </div>
+    <div class="safety"><div class="safety-t">⚠️ Antes de contactar</div><div class="safety-p">Coordiná el encuentro en un <strong>lugar público</strong> y con acompañante. <strong>Nunca pagues dinero</strong>. Si alguien te lo pide, es una estafa — cortá el contacto y reportalo.</div></div>
+    <button class="btn-contact" id="btnReveal" onclick="revealContact()">Ver contacto y abrir WhatsApp 💬</button>
+    <button class="btn-more" id="btnMore" onclick="showScreen('browse')">Seguir buscando</button>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-bg" id="reportModal">
+  <div class="modal-sh" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-hndl"></div>
+    <div class="modal-ttl">Reportar publicación</div>
+    <div class="modal-sub">Ayudanos a mantener Go Home! seguro</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Motivo del reporte:</div>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--offwhite);border-radius:var(--r-sm);cursor:pointer"><input type="radio" name="reportReason" value="Estafa / Piden dinero"> <span style="font-size:13px">💰 Estafa / Piden dinero</span></label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--offwhite);border-radius:var(--r-sm);cursor:pointer"><input type="radio" name="reportReason" value="Publicación falsa"> <span style="font-size:13px">🚫 Publicación falsa o engañosa</span></label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--offwhite);border-radius:var(--r-sm);cursor:pointer"><input type="radio" name="reportReason" value="Contenido inapropiado"> <span style="font-size:13px">⚠️ Contenido inapropiado</span></label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--offwhite);border-radius:var(--r-sm);cursor:pointer"><input type="radio" name="reportReason" value="Mascota ya fue encontrada"> <span style="font-size:13px">✅ La mascota ya fue encontrada</span></label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--offwhite);border-radius:var(--r-sm);cursor:pointer"><input type="radio" name="reportReason" value="Otro"> <span style="font-size:13px">📝 Otro motivo</span></label>
+    </div>
+    <textarea id="reportDetail" class="ftxa" placeholder="Descripción adicional (opcional)..." style="margin-bottom:12px;min-height:70px"></textarea>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.5">La IA revisará tu reporte. Si no obtenés respuesta podés escribirnos a <strong>reportes@gohome.com.ar</strong></div>
+    <button onclick="submitReport()" style="width:100%;background:var(--coral);color:white;border:none;border-radius:var(--r-sm);padding:14px;font-size:14px;font-weight:600;font-family:sans-serif;cursor:pointer;margin-bottom:10px">Enviar reporte</button>
+    <button onclick="document.getElementById('reportModal').classList.remove('open')" class="modal-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="modal-bg" id="adminModal">
+  <div class="modal-sh">
+    <div class="modal-hndl"></div>
+    <div class="modal-ttl">Panel de Administración</div>
+    <div class="modal-sub">Solo para administradores de Go Home!</div>
+    <input type="password" id="adminPass" class="finp" placeholder="Contraseña de administrador" style="margin-bottom:12px">
+    <button onclick="checkAdminPass()" style="width:100%;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);padding:14px;font-size:14px;font-weight:600;font-family:sans-serif;cursor:pointer;margin-bottom:10px">Ingresar</button>
+    <button onclick="document.getElementById('adminModal').classList.remove('open')" class="modal-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="screen-admin" class="screen">
+  <div class="topbar">
+    <div class="logo-wrap"><div class="logo-paw">🐾</div><div class="logo-text">Go <span>Home!</span></div></div>
+    <div class="topbar-right"><button class="back-btn" data-back="home" onclick="showScreen('home')">← Inicio</button></div>
+  </div>
+  <div style="padding:20px;overflow-y:auto;flex:1">
+    <div style="font-family:Clash Display,sans-serif;font-size:20px;font-weight:700;margin-bottom:4px">Panel Admin 🛡️</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Gestioná todas las publicaciones</div>
+    <div id="adminCards" style="display:flex;flex-direction:column;gap:12px"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal-sh">
+    <div class="modal-hndl"></div>
+    <div class="modal-ttl">Contactar por WhatsApp</div>
+    <div class="modal-sub" id="modalSub">Coordiná el reencuentro</div>
+    <div class="modal-wrn"><p>🚨 <strong>Nunca pagues dinero</strong> para recuperar tu mascota. Si te lo piden, cerrá la conversación y reportalo.</p></div>
+    <button class="wa-btn" id="waBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Abrir WhatsApp</button>
+    <button class="modal-cancel" id="modalCancel" onclick="document.getElementById('modal').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+var cType='lost',cFilter='all',cMatch=null,geoCoords=null,photoURLs=[],fullMap=null,miniMaps={},selColor='',selSize='';
+
+var DEMO=[
+  {id:'d1',type:'lost',species:'Perro',breed:'Labrador',color:'Dorado',size:'Grande',name:'Simba',zone:'Palermo, CABA',date:'2025-04-28',desc:'Collar rojo, muy amigable. Oreja derecha operada.',health:'Toma Enalapril cada 12hs',chip:'123456789',owner:'Maria Gonzalez',phone:'1156781234',emoji:'🐕',lat:-34.5885,lng:-58.4166},
+  {id:'d2',type:'found',species:'Perro',breed:'',color:'Dorado',size:'Grande',name:'',zone:'Villa Crespo, CABA',date:'2025-04-29',desc:'Perro grande dorado sin collar, muy docil. Le falta parte de una oreja.',health:'',chip:'',owner:'Carlos Ruiz',phone:'1167892345',emoji:'🐕',lat:-34.5960,lng:-58.4370},
+  {id:'d3',type:'lost',species:'Gato',breed:'Europeo comun',color:'Negro y blanco',size:'Mediano',name:'Luna',zone:'Caballito, CABA',date:'2025-04-30',desc:'Gata con mancha blanca en el pecho, ojos verdes. Castrada.',health:'Alergica al gluten.',chip:'987654321',owner:'Ana Perez',phone:'1178903456',emoji:'🐈',lat:-34.6197,lng:-58.4392},
+  {id:'d4',type:'found',species:'Gato',breed:'',color:'Negro con blanco',size:'Mediano',name:'',zone:'Flores, CABA',date:'2025-05-01',desc:'Gata negra con mancha blanca en el pecho, asustada.',health:'',chip:'',owner:'Luis Torres',phone:'1189014567',emoji:'🐈',lat:-34.6278,lng:-58.4614}
+];
+
+function loadData(){
+  var s=[];
+  try{s=JSON.parse(localStorage.getItem('gh_v4')||'[]');}catch(e){}
+  return DEMO.concat(s);
+}
+
+function savePost(p){
+  var s=[];
+  try{s=JSON.parse(localStorage.getItem('gh_v4')||'[]');}catch(e){}
+  s.push(p);
+  localStorage.setItem('gh_v4',JSON.stringify(s));
+}
+
+function showScreen(id){
+  var screens=document.querySelectorAll('.screen');
+  for(var i=0;i<screens.length;i++){screens[i].classList.remove('active');}
+  document.getElementById('screen-'+id).classList.add('active');
+  if(id==='browse'){renderCards();}
+  if(id==='home'){updateStats();}
+  if(id==='map'){initFullMap();}
+  window.scrollTo(0,0);
+}
+
+function setType(t){
+  cType=t;
+  var tswL=document.getElementById('tswL');
+  var tswF=document.getElementById('tswF');
+  tswL.className='tsw lost'+(t==='lost'?' on':'');
+  tswF.className='tsw found'+(t==='found'?' on':'');
+  var hero=document.getElementById('formHero');
+  hero.className='form-hero '+t;
+  document.getElementById('fhIcon').textContent=t==='lost'?'😢':'🏠';
+  document.getElementById('fhTitle').textContent=t==='lost'?'Perdi a mi mascota':'Encontre una mascota';
+  document.getElementById('fhSub').textContent=t==='lost'?'Completa todos los datos que puedas':'Carga solo lo que podes ver. La IA hace el resto.';
+  document.getElementById('lostExtra').style.display=t==='lost'?'block':'none';
+  document.getElementById('lostHealth').style.display=t==='lost'?'block':'none';
+  document.getElementById('descHint').textContent=t==='lost'?'Senas particulares':'Solo lo que ves';
+  document.getElementById('fDesc').placeholder=t==='lost'?'Collar, manchas, cicatrices, comportamiento...':'Describe lo que ves: color, tamanio, collar, donde lo encontraste...';
+}
+
+function handlePhotos(input){
+  var wrap=document.getElementById('thumbsWrap');
+  wrap.innerHTML='';
+  photoURLs=[];
+  var files=Array.prototype.slice.call(input.files,0,4);
+  var firstFile=true;
+  files.forEach(function(file){
+    var isFirst=firstFile;
+    firstFile=false;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        // Compress
+        var canvas=document.createElement('canvas');
+        var MAX=600;
+        var w=img.width, h=img.height;
+        if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}
+        else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
+        canvas.width=w; canvas.height=h;
+        var ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        var compressed=canvas.toDataURL('image/jpeg',0.6);
+        photoURLs.push(compressed);
+        var thumb=document.createElement('img');
+        thumb.src=compressed; thumb.className='thumb';
+        wrap.appendChild(thumb);
+        // Show detect breed button after first photo
+        if(isFirst){
+          var wrap2=document.getElementById('detectBreedWrap');
+          if(wrap2){wrap2.style.display='block';}
+          document.getElementById('aiPhotoResult').style.display='none';
+          document.getElementById('aiAnalyzing').style.display='none';
+          // Store for later use
+          window._firstPhotoData=compressed;
+        }
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+var aiDetectedData=null;
+
+function detectBreedFromBtn(){
+  var photoData=window._firstPhotoData;
+  if(!photoData){alert('Primero subí una foto');return;}
+  var btn=document.getElementById('detectBreedBtn');
+  if(btn){btn.disabled=true;btn.textContent='Analizando...';}
+  detectBreed(photoData);
+}
+
+function detectBreed(photoData){
+  var analyzing=document.getElementById('aiAnalyzing');
+  var result=document.getElementById('aiPhotoResult');
+  var applyBtn=document.getElementById('aiApplyBtn');
+  if(analyzing){analyzing.style.display='block';}
+  if(result){result.style.display='none';}
+
+  var detectTimeout=new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'));},7000);});
+  Promise.race([
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:200,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:photoData.split(',')[1]}},
+            {type:'text',text:'Analiza esta foto de mascota. SOLO JSON sin markdown: {"species":"Perro o Gato","breed":"raza en español o Mestizo","confidence":"alta/media/baja","color":"color principal en español","size":"Pequeño/Mediano/Grande"}. Si no ves mascota escribe breed vacio.'}
+          ]
+        }]
+      })
+    }),
+    detectTimeout
+  ]).then(function(res){return res.json();})
+  .then(function(data){
+    if(analyzing){analyzing.style.display='none';}
+    var txt=data.content.map(function(i){return i.text||'';}).join('').replace(/```json|```/g,'').trim();
+    var parsed=JSON.parse(txt);
+    if(parsed.breed&&parsed.confidence!=='baja'){
+      aiDetectedData=parsed;
+      var lines=[];
+      if(parsed.species){lines.push('Especie: '+parsed.species);}
+      if(parsed.breed){lines.push('Raza: '+parsed.breed+' (confianza '+parsed.confidence+')');}
+      if(parsed.color){lines.push('Color: '+parsed.color);}
+      if(parsed.size){lines.push('Tamaño: '+parsed.size);}
+      document.getElementById('aiBreedText').textContent=lines.join(' · ');
+      if(result){result.style.display='block';}
+      if(applyBtn){
+        applyBtn.onclick=function(){
+          if(parsed.breed){var bf=document.getElementById('fBreed');if(bf&&!bf.value){bf.value=parsed.breed;}}
+          if(parsed.color){var cf=document.getElementById('fColorTxt');if(cf&&!cf.value&&!selColor){cf.value=parsed.color;}}
+          if(parsed.size){
+            var opts=document.querySelectorAll('.so');
+            for(var i=0;i<opts.length;i++){
+              if(opts[i].dataset.size===parsed.size||
+                (parsed.size==='Pequeno'&&opts[i].dataset.size==='Pequeño')||
+                (parsed.size==='Pequeño'&&opts[i].dataset.size==='Pequeño')){
+                opts[i].click();break;
+              }
+            }
+          }
+          if(parsed.species){var sf=document.getElementById('fSpecies');if(sf&&!sf.value){sf.value=parsed.species;}}
+          applyBtn.textContent='✅ Aplicado!';
+          applyBtn.disabled=true;
+        };
+      }
+    } else {
+      if(analyzing){analyzing.style.display='none';}
+    }
+  }).catch(function(e){
+    if(analyzing){analyzing.style.display='none';}
+    var btn2=document.getElementById('detectBreedBtn');
+    if(btn2){btn2.disabled=false;btn2.textContent='🔍 Analizar raza con IA';}
+    var result2=document.getElementById('aiPhotoResult');
+    var breedTxt=document.getElementById('aiBreedText');
+    if(result2&&breedTxt){
+      breedTxt.textContent='Esta funcion requiere conexion especial. Funciona en Chrome de PC. En iPhone complete la raza manualmente.';
+      breedTxt.style.color='var(--muted)';
+      result2.style.display='block';
+      document.getElementById('aiApplyBtn').style.display='none';
+    }
+  });
+}
+
+function getLocation(){
+  var st=document.getElementById('geoSt');
+  var btn=document.getElementById('geoBtn');
+  if(!navigator.geolocation){
+    st.textContent='GPS no disponible en este navegador. Usá la dirección manual.';
+    st.style.color='var(--coral)';
+    return;
+  }
+  if(btn){btn.textContent='⏳ Obteniendo ubicación...';}
+  st.textContent='';
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      geoCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      if(btn){btn.textContent='✅ Ubicación GPS capturada';}
+      st.style.color='var(--teal-dk)';
+      // Reverse geocode to get address
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+pos.coords.latitude+'&lon='+pos.coords.longitude+'&accept-language=es')
+        .then(function(r){return r.json();})
+        .then(function(d){
+          var addr=d.address||{};
+          var street=(addr.road||addr.pedestrian||'');
+          var num=addr.house_number?(' '+addr.house_number):'';
+          var city=addr.city||addr.town||addr.village||addr.municipality||'';
+          var country=addr.country||'';
+          var zone=addr.suburb||addr.neighbourhood||addr.quarter||city;
+          if(street){var sf=document.getElementById('fStreet');if(sf){sf.value=street+num;}}
+          if(city){var cf=document.getElementById('fCity');if(cf){cf.value=city;}}
+          if(country){var cof=document.getElementById('fCountry');if(cof){cof.value=country;}}
+          if(zone){var zf=document.getElementById('fZone');if(zf){zf.value=zone;}}
+          st.textContent='📍 '+[street+num,zone,city].filter(Boolean).join(', ');
+          showLocationPreview(pos.coords.latitude,pos.coords.longitude,st.textContent);
+        })
+        .catch(function(){
+          st.textContent='GPS capturado (lat:'+pos.coords.latitude.toFixed(4)+', lng:'+pos.coords.longitude.toFixed(4)+')';
+          var zf=document.getElementById('fZone');if(zf&&!zf.value){zf.value='Ubicación GPS';}
+        });
+    },
+    function(err){
+      if(btn){btn.textContent='📍 Usar mi ubicación GPS actual';}
+      if(err.code===1){
+        st.textContent='Permiso denegado. Activá el GPS en Configuración > Safari > Ubicación, o usá la dirección manual.';
+      } else {
+        st.textContent='No se pudo obtener la ubicación. Usá la dirección manual.';
+      }
+      st.style.color='var(--coral)';
+    },
+    {timeout:10000,enableHighAccuracy:true}
+  );
+}
+
+function gpsDistance(lat1,lng1,lat2,lng2){
+  var R=6371;
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function localScore(post,cand){
+  var score=0;
+  var reasons=[];
+  var neg=[];
+
+  // Especie - fundamental
+  if(post.species===cand.species){score+=25;reasons.push('Misma especie');}
+  else{neg.push('Especie diferente');return {score:0,reasons:reasons,neg:neg};}
+
+  // Color - flexible matching
+  var pc=(post.color||'').toLowerCase();
+  var cc=(cand.color||'').toLowerCase();
+  var colorWords=['negro','blanco','marron','dorado','gris','naranja','amarillo','cafe','oscuro','claro','manchado','atigrado','rojizo'];
+  var colorMatch=false;
+  for(var i=0;i<colorWords.length;i++){
+    if(pc.indexOf(colorWords[i])>=0&&cc.indexOf(colorWords[i])>=0){colorMatch=true;break;}
+  }
+  // Also check if any word from post color appears in cand color
+  var pwords=pc.split(/[\s,\/\-]+/);
+  for(var k=0;k<pwords.length;k++){
+    if(pwords[k].length>2&&cc.indexOf(pwords[k])>=0){colorMatch=true;break;}
+  }
+  if(colorMatch){score+=30;reasons.push('Color similar: '+post.color);}
+  else if(pc&&cc){neg.push('Color diferente: '+post.color+' vs '+cc);}
+
+  // Tamanio
+  if(post.size&&cand.size){
+    if(post.size===cand.size){score+=15;reasons.push('Mismo tamanio: '+post.size);}
+    else{neg.push('Tamanio diferente');}
+  }
+
+  // Distancia GPS basada en estadisticas reales (ASPCA/HASS/Fi GPS data)
+  // 95% perros: menos de 2km | 75% gatos: menos de 500m
+  if(post.lat&&post.lng&&cand.lat&&cand.lng){
+    var dist=gpsDistance(post.lat,post.lng,cand.lat,cand.lng);
+    var distM=dist*1000; // en metros
+    var isCat=post.species==='Gato';
+    if(isCat){
+      // Gatos casi nunca se alejan mas de 500m (estadistica: 75% dentro de 500m)
+      if(distM<300){score+=30;reasons.push('Zona critica para gatos: '+Math.round(distM)+'m');}
+      else if(distM<500){score+=25;reasons.push('Muy cerca: '+Math.round(distM)+'m');}
+      else if(distM<1000){score+=15;reasons.push('Zona probable: '+dist.toFixed(1)+'km');}
+      else if(distM<2000){score+=5;reasons.push('Algo lejos para un gato: '+dist.toFixed(1)+'km');}
+      else{neg.push('Muy lejos para un gato: '+dist.toFixed(1)+'km');}
+    } else {
+      // Perros: 95% dentro de 2km, 42% a menos de 1 cuadra
+      if(distM<200){score+=30;reasons.push('Zona critica: '+Math.round(distM)+'m');}
+      else if(distM<500){score+=28;reasons.push('Muy cerca: '+Math.round(distM)+'m');}
+      else if(dist<2){score+=22;reasons.push('Zona cercana: '+dist.toFixed(1)+'km');}
+      else if(dist<5){score+=12;reasons.push('Misma zona: '+dist.toFixed(1)+'km');}
+      else if(dist<15){score+=4;reasons.push('Misma ciudad: '+dist.toFixed(1)+'km');}
+      else{neg.push('Lejos: '+dist.toFixed(0)+'km de distancia');}
+    }
+  }
+
+  // Fecha - si estan cerca en tiempo
+  if(post.date&&cand.date){
+    var diff=Math.abs(new Date(post.date)-new Date(cand.date))/(1000*3600*24);
+    if(diff<=3){score+=10;reasons.push('Fechas muy cercanas');}
+    else if(diff<=7){score+=5;reasons.push('Misma semana');}
+  }
+
+  if(!reasons.length){reasons.push('Misma categoria');}
+  return {score:Math.min(score,95),reasons:reasons,neg:neg};
+}
+
+function submitForm(){
+  try{
+  var species=document.getElementById('fSpecies').value;
+  // Build full zone from manual fields or GPS
+  var street=document.getElementById('fStreet')?document.getElementById('fStreet').value.trim():'';
+  var city=document.getElementById('fCity')?document.getElementById('fCity').value.trim():'';
+  var country=document.getElementById('fCountry')?document.getElementById('fCountry').value.trim():'';
+  var zoneField=document.getElementById('fZone').value.trim();
+  var zone=[street,zoneField,city,country].filter(Boolean).join(', ');
+  if(!zone){zone=zoneField;}
+  var owner=document.getElementById('fOwner').value.trim();
+  var phone=document.getElementById('fPhone').value.trim();
+  var desc=document.getElementById('fDesc').value.trim();
+  var color=selColor||document.getElementById('fColorTxt').value.trim();
+  if(!species){alert('Selecciona la especie');return;}
+  if(!zone){alert('Escribe la zona o barrio');return;}
+  if(!color){alert('Selecciona o escribe el color');return;}
+  if(!desc){alert('Describe la mascota');return;}
+  if(!owner){alert('Escribe tu nombre');return;}
+  if(!phone){alert('Escribe tu WhatsApp');return;}
+  var post={
+    id:'u'+Date.now(),
+    type:cType,
+    species:species,
+    breed:document.getElementById('fBreed').value,
+    color:color,
+    size:selSize,
+    name:document.getElementById('fName').value,
+    zone:zone,
+    date:document.getElementById('fDate').value,
+    time:document.getElementById('fTime').value,
+    desc:desc,
+    health:document.getElementById('fHealth').value,
+    chip:document.getElementById('fChip').value,
+    owner:owner,
+    phone:phone,
+    photos:photoURLs,
+    emoji:species==='Perro'?'🐕':'🐈',
+    lat:geoCoords?geoCoords.lat:(-34.60+Math.random()*.14-.07),
+    lng:geoCoords?geoCoords.lng:(-58.43+Math.random()*.14-.07),
+    ts:Date.now()
+  };
+  try{
+    savePost(post);
+  }catch(storageErr){
+    // If storage full, save without photos
+    post.photos=[];
+    try{savePost(post);}catch(e2){alert('Almacenamiento lleno. Intentá sin fotos.');}
+  }
+  runAutoMatch(post);
+  }catch(err){alert('Error: '+err.message);}
+}
+
+function runAutoMatch(post){
+  var all=loadData();
+  var candidates=all.filter(function(p){
+    return p.id!==post.id&&p.type!==post.type&&p.species===post.species;
+  });
+  if(!candidates.length){
+    alert('Publicacion guardada! Te avisamos cuando haya un match.');
+    showScreen('home');
+    updateStats();
+    return;
+  }
+  // Score all candidates and pick best
+  var best=null;
+  var bestScore=0;
+  for(var i=0;i<candidates.length;i++){
+    var ls=localScore(post,candidates[i]);
+    if(ls.score>bestScore){bestScore=ls.score;best={score:ls.score,reasons:ls.reasons,neg:ls.neg,candidate:candidates[i]};}
+  }
+  cMatch={score:best.score,reasons:best.reasons,negatives:best.neg,candidate:best.candidate};
+  
+  // If both have photos, use AI vision for photo comparison
+  if(post.photos&&post.photos.length>0&&best.candidate.photos&&best.candidate.photos.length>0){
+    aiPhotoMatch(post,best.candidate,best.score,best.reasons,best.neg);
+  } else if(best.score>=30){
+    alert('Posible match: '+Math.round(best.score)+'% de coincidencia!');
+    showMatchScreen(best.score,best.reasons,best.neg,best.candidate);
+  } else {
+    alert('Publicacion guardada! Sin matches fuertes por ahora.');
+    showScreen('home');
+    updateStats();
+  }
+}
+
+function aiPhotoMatch(post,cand,baseScore,baseReasons,baseNeg){
+  var photo1=post.photos[0];
+  var photo2=cand.photos[0];
+  var prompt='Sos un experto en identificacion de mascotas. Analiza DETALLADAMENTE estas dos fotos y determina si es el mismo animal.\n\nAnalizá:\n1. Patron de colores y manchas (exacto)\n2. Forma y tamano de orejas\n3. Forma del hocico/cara\n4. Marcas unicas: cicatrices, manchas especiales, ojos\n5. Raza o caracteristicas raciales\n6. Tamano corporal estimado\n7. Pelaje: largo, textura, patron\n\nDatos adicionales:\nPublicacion A ('+post.type+'): '+post.species+' color:'+post.color+' zona:'+post.zone+' desc:'+post.desc+'\nPublicacion B ('+cand.type+'): '+cand.species+' color:'+cand.color+' zona:'+cand.zone+' desc:'+cand.desc+'\n\nResponde SOLO JSON sin markdown:\n{"match":true/false,"confidence":0_a_100,"visual_analysis":"descripcion breve de lo que ves en cada foto","reasons":["similitud 1","similitud 2","similitud 3"],"negative":["diferencia 1 si existe"]}';
+  
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:300,
+      messages:[{
+        role:'user',
+        content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:photo1.split(',')[1]}},
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:photo2.split(',')[1]}},
+          {type:'text',text:prompt}
+        ]
+      }]
+    })
+  }).then(function(res){return res.json();})
+  .then(function(data){
+    var txt=data.content.map(function(i){return i.text||'';}).join('').replace(/```json|```/g,'').trim();
+    var parsed=JSON.parse(txt);
+    // Combine AI vision score with local score
+    var finalScore=Math.round((parsed.confidence*0.6)+(baseScore*0.4));
+    var allReasons=baseReasons.concat(parsed.reasons||[]);
+    var allNeg=baseNeg.concat(parsed.negative||[]);
+    if(parsed.match||finalScore>=35){
+      cMatch={score:finalScore,reasons:allReasons,negatives:allNeg,candidate:cand};
+      alert('IA analizo las fotos! '+finalScore+'% de coincidencia!');
+      showMatchScreen(finalScore,allReasons,allNeg,cand);
+    } else {
+      alert('Publicacion guardada! La IA comparo las fotos y no encontro coincidencias claras ('+finalScore+'%).');
+      showScreen('home');
+      updateStats();
+    }
+  }).catch(function(){
+    // API failed - use local score
+    if(baseScore>=30){
+      alert('Posible match: '+Math.round(baseScore)+'% de coincidencia!');
+      showMatchScreen(baseScore,baseReasons,baseNeg,cand);
+    } else {
+      alert('Publicacion guardada! Sin matches por ahora.');
+      showScreen('home');
+      updateStats();
+    }
+  });
+}
+
+function checkMatchFor(postId){
+  var all=loadData();
+  var post=null;
+  for(var i=0;i<all.length;i++){if(all[i].id===postId){post=all[i];break;}}
+  if(!post){return;}
+  var candidates=all.filter(function(p){
+    return p.id!==postId&&p.type!==post.type&&p.species===post.species;
+  });
+  if(!candidates.length){alert('No hay publicaciones del tipo opuesto todavia.');return;}
+  // Score ALL candidates and pick best - same as runAutoMatch
+  var best=null;
+  var bestScore=0;
+  for(var i=0;i<candidates.length;i++){
+    var ls=localScore(post,candidates[i]);
+    if(ls.score>bestScore){bestScore=ls.score;best={score:ls.score,reasons:ls.reasons,neg:ls.neg,candidate:candidates[i]};}
+  }
+  cMatch={score:best.score,reasons:best.reasons,negatives:best.neg,candidate:best.candidate};
+  // Use AI photo comparison if both have photos - same as runAutoMatch
+  if(post.photos&&post.photos.length>0&&best.candidate.photos&&best.candidate.photos.length>0){
+    aiPhotoMatch(post,best.candidate,best.score,best.reasons,best.neg);
+  } else if(best.score>=30){
+    showMatchScreen(best.score,best.reasons,best.neg,best.candidate);
+  } else {
+    alert('No se encontraron matches fuertes para esta publicacion.');
+  }
+}
+
+function showMatchScreen(score,reasons,negatives,cand){
+  document.getElementById('matchSub').textContent='Posible coincidencia con '+cand.owner+' en '+cand.zone;
+  document.getElementById('scoreN').textContent=Math.round(score)+'%';
+  setTimeout(function(){document.getElementById('scoreFill').style.width=Math.round(score)+'%';},300);
+  var html='';
+  for(var i=0;i<reasons.length;i++){html+='<div class="rrow"><div class="rdot"></div>'+reasons[i]+'</div>';}
+  if(negatives){for(var j=0;j<negatives.length;j++){html+='<div class="rrow"><div class="rdot neg"></div>'+negatives[j]+'</div>';}}
+  document.getElementById('reasons').innerHTML=html;
+  showScreen('match');
+}
+
+function revealContact(){
+  if(!cMatch){return;}
+  var c=cMatch.candidate;
+  document.getElementById('modalSub').textContent='Contactar a '+c.owner;
+  var msg=encodeURIComponent('Hola '+c.owner+'! Te escribo desde Go Home! Creo que tengo informacion sobre tu mascota. Podemos coordinar?');
+  document.getElementById('waBtn').onclick=function(){window.open('https://wa.me/54'+c.phone+'?text='+msg,'_blank');};
+  document.getElementById('modal').classList.add('open');
+}
+
+function setFilter(f){
+  cFilter=f;
+  var chips=document.querySelectorAll('.chip');
+  for(var i=0;i<chips.length;i++){chips[i].className='chip';}
+  var mp={all:'ca',lost:'cl',found:'cf',dog:'cs',cat:'cs'};
+  var ids={all:'chipAll',lost:'chipLost',found:'chipFound',dog:'chipDog',cat:'chipCat'};
+  document.getElementById(ids[f]).classList.add(mp[f]);
+  renderCards();
+}
+
+function renderCards(){
+  var data=loadData();
+  if(cFilter==='lost'){data=data.filter(function(p){return p.type==='lost';});}
+  else if(cFilter==='found'){data=data.filter(function(p){return p.type==='found';});}
+  else if(cFilter==='dog'){data=data.filter(function(p){return p.species==='Perro';});}
+  else if(cFilter==='cat'){data=data.filter(function(p){return p.species==='Gato';});}
+  var grid=document.getElementById('cardsGrid');
+  if(!data.length){grid.innerHTML='<div class="empty-st"><div>Buscar</div><p>No hay publicaciones en esta categoria.</p></div>';return;}
+  var html='';
+  for(var i=0;i<data.length;i++){
+    var p=data[i];
+    var imgHtml=p.photos&&p.photos[0]?'<img src="'+p.photos[0]+'" alt="foto" style="width:100%;height:165px;object-fit:cover;position:absolute;inset:0">':p.emoji||'🐾';
+    html+='<div class="pcard">';
+    html+='<div class="pcard-img">'+imgHtml+'<div class="pcard-badge '+(p.type==='lost'?'bl':'bf')+'">'+(p.type==='lost'?'Perdido/a':'Encontrado/a')+'</div></div>';
+    html+='<div class="pcard-body">';
+    html+='<div class="pcard-top"><div class="pcard-name">'+(p.name||'Sin nombre')+'</div><div class="pcard-dt">'+(p.date||'')+'</div></div>';
+    html+='<div class="tags">';
+    if(p.species){html+='<span class="tag">'+p.species+'</span>';}
+    if(p.breed){html+='<span class="tag">'+p.breed+'</span>';}
+    if(p.color){html+='<span class="tag">'+p.color+'</span>';}
+    if(p.size){html+='<span class="tag">'+p.size+'</span>';}
+    html+='</div>';
+    html+='<div class="pcard-zone">📍 '+p.zone+'</div>';
+    if(p.desc){html+='<div class="pcard-desc">'+p.desc.substring(0,90)+(p.desc.length>90?'...':'')+'</div>';}
+    html+='<div class="mini-map" id="map-'+p.id+'"></div>';
+    html+='<div class="pcard-actions"><button class="btn-ai" onclick="checkMatchFor(\''+p.id+'\')">Buscar match con IA</button><button class="btn-rpt" onclick="openReport(''+p.id+'')">🚩 Reportar</button></div>';
+    html+='</div></div>';
+  }
+  // Insert ad banner every 3 cards
+  var adHtml='<div class="ad-banner"><div class="ad-icon">🐾</div><div class="ad-text"><strong>Royal Canin</strong><span>Nutrición especializada por raza</span></div><button class="ad-cta">Ver más</button><div class="ad-badge">Publicidad</div></div>';
+  var cards=html.split('</div></div>');
+  var finalHtml='';
+  for(var ci=0;ci<cards.length;ci++){
+    finalHtml+=cards[ci]+(ci<cards.length-1?'</div></div>':'');
+    if((ci+1)%3===0&&ci<cards.length-1){finalHtml+=adHtml;}
+  }
+  grid.innerHTML=finalHtml;
+  setTimeout(function(){for(var i=0;i<data.length;i++){initMiniMap(data[i]);}},200);
+}
+
+function initMiniMap(p){
+  var el=document.getElementById('map-'+p.id);
+  if(!el||miniMaps[p.id]){return;}
+  try{
+    var color=p.type==='lost'?'#FF6B6B':'#3DBFAA';
+    var m=L.map(el,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,attributionControl:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:17}).addTo(m);
+    var icon=L.divIcon({html:'<div style="background:'+color+';width:14px;height:14px;border-radius:50%;border:2.5px solid white;box-shadow:0 1px 6px rgba(0,0,0,.4)"></div>',className:'',iconSize:[14,14],iconAnchor:[7,7]});
+    L.marker([p.lat,p.lng],{icon:icon}).addTo(m);
+    m.setView([p.lat,p.lng],14);
+    miniMaps[p.id]=m;
+  }catch(e){}
+}
+
+function initFullMap(){
+  var el=document.getElementById('fullMap');
+  if(fullMap){fullMap.invalidateSize();return;}
+  try{
+    fullMap=L.map(el,{attributionControl:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(fullMap);
+    var data=loadData();
+    var bounds=[];
+    for(var i=0;i<data.length;i++){
+      var p=data[i];
+      var color=p.type==='lost'?'#FF6B6B':'#3DBFAA';
+      var icon=L.divIcon({html:'<div style="background:'+color+';color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.35)">'+(p.emoji||'🐾')+'</div>',className:'',iconSize:[36,36],iconAnchor:[18,18]});
+      L.marker([p.lat,p.lng],{icon:icon}).addTo(fullMap).bindPopup('<b>'+(p.name||'Sin nombre')+'</b><br>'+p.species+' - '+p.zone+'<br>'+(p.type==='lost'?'Perdido/a':'Encontrado/a'));
+      bounds.push([p.lat,p.lng]);
+    }
+    if(bounds.length){fullMap.fitBounds(bounds,{padding:[40,40]});}
+    else{fullMap.setView([-34.61,-58.44],12);}
+  }catch(e){}
+}
+
+function requestNotif(){
+  if(!('Notification' in window)){alert('Notificaciones no disponibles en este navegador');return;}
+  Notification.requestPermission(function(p){
+    if(p==='granted'){
+      document.getElementById('notifDot').classList.add('show');
+      alert('Notificaciones activadas!');
+    }else{
+      alert('Permiso denegado. Activa las notificaciones en configuracion del navegador.');
+    }
+  });
+}
+
+function updateStats(){
+  var d=loadData();
+  var lost=d.filter(function(p){return p.type==='lost';}).length;
+  var found=d.filter(function(p){return p.type==='found';}).length;
+  document.getElementById('sLost').textContent=lost;
+  document.getElementById('sFound').textContent=found;
+  document.getElementById('sReunited').textContent=Math.floor(d.length/5);
+}
+
+// ── REPORT SYSTEM ──
+var currentReportId = null;
+
+function openReport(postId) {
+  currentReportId = postId;
+  document.getElementById('reportModal').classList.add('open');
+  document.querySelectorAll('input[name="reportReason"]').forEach(function(r){r.checked=false;});
+  document.getElementById('reportDetail').value='';
+}
+
+function submitReport() {
+  var reason = '';
+  document.querySelectorAll('input[name="reportReason"]').forEach(function(r){if(r.checked){reason=r.value;}});
+  var detail = document.getElementById('reportDetail').value.trim();
+  if(!reason){alert('Seleccioná un motivo');return;}
+  // Save report to localStorage
+  var reports = [];
+  try{reports=JSON.parse(localStorage.getItem('gh_reports')||'[]');}catch(e){}
+  reports.push({id:'r'+Date.now(),postId:currentReportId,reason:reason,detail:detail,ts:Date.now()});
+  localStorage.setItem('gh_reports',JSON.stringify(reports));
+  document.getElementById('reportModal').classList.remove('open');
+  alert('Reporte enviado. La IA lo revisará. Si no obtenés respuesta escribí a reportes@gohome.com.ar');
+}
+
+// ── ADMIN PANEL ──
+var ADMIN_PASS = 'gohome2025admin';
+
+function openAdmin() {
+  document.getElementById('adminModal').classList.add('open');
+  document.getElementById('adminPass').value='';
+}
+
+function checkAdminPass() {
+  var pass = document.getElementById('adminPass').value;
+  if(pass === ADMIN_PASS) {
+    document.getElementById('adminModal').classList.remove('open');
+    renderAdminPanel();
+    showScreen('admin');
+  } else {
+    alert('Contraseña incorrecta');
+  }
+}
+
+function renderAdminPanel() {
+  var data = loadData();
+  var reports = [];
+  try{reports=JSON.parse(localStorage.getItem('gh_reports')||'[]');}catch(e){}
+  var container = document.getElementById('adminCards');
+  if(!container){return;}
+  var html = '<div style="background:var(--coral-lt);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:var(--coral);margin-bottom:4px">⚠️ Reportes pendientes: '+reports.length+'</div>';
+  reports.forEach(function(r){
+    var post=data.find(function(p){return p.id===r.postId;});
+    html+='<div style="font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(255,107,107,.2)">'+r.reason+(post?' - '+(post.name||post.owner):'')+'</div>';
+  });
+  html+='</div>';
+  // All posts
+  html+='<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Todas las publicaciones ('+data.length+'):</div>';
+  data.forEach(function(p){
+    var isDemo=p.id.startsWith('d');
+    html+='<div style="background:var(--white);border-radius:var(--r-sm);padding:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">';
+    html+='<div><div style="font-size:13px;font-weight:600">'+(p.name||'Sin nombre')+'</div>';
+    html+='<div style="font-size:11px;color:var(--muted)">'+p.type+' · '+p.species+' · '+p.zone+'</div></div>';
+    if(!isDemo){
+      html+='<button onclick="deletePost(''+p.id+'')" style="background:var(--coral);color:white;border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-family:sans-serif">Eliminar</button>';
+    } else {
+      html+='<span style="font-size:10px;color:var(--muted)">Demo</span>';
+    }
+    html+='</div>';
+  });
+  container.innerHTML=html;
+}
+
+function deletePost(postId) {
+  if(!confirm('¿Eliminar esta publicación?')){return;}
+  var stored=[];
+  try{stored=JSON.parse(localStorage.getItem('gh_v4')||'[]');}catch(e){}
+  stored=stored.filter(function(p){return p.id!==postId;});
+  localStorage.setItem('gh_v4',JSON.stringify(stored));
+  renderAdminPanel();
+  alert('Publicación eliminada.');
+}
+
+// ── NOMINATIM AUTOCOMPLETE
+var acTimer=null;
+var previewMap=null;
+var previewMarker=null;
+
+function initAutocomplete(){
+  var input=document.getElementById('fZone');
+  var list=document.getElementById('autocomplete-list');
+  input.addEventListener('input',function(){
+    var q=this.value.trim();
+    clearTimeout(acTimer);
+    if(q.length<3){list.style.display='none';return;}
+    acTimer=setTimeout(function(){searchNominatim(q);},500);
+  });
+  document.addEventListener('click',function(e){
+    if(e.target!==input){list.style.display='none';}
+  });
+}
+
+function searchNominatim(q){
+  var list=document.getElementById('autocomplete-list');
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5&accept-language=es')
+    .then(function(res){return res.json();})
+    .then(function(data){
+      if(!data.length){list.style.display='none';return;}
+      list.innerHTML='';
+      for(var i=0;i<data.length;i++){
+        (function(place){
+          var item=document.createElement('div');
+          item.style.cssText='padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #DDE6EE;color:#0D1B2A;line-height:1.4';
+          item.textContent='📍 '+place.display_name;
+          item.addEventListener('click',function(){selectPlace(place);});
+          item.addEventListener('touchend',function(e){e.preventDefault();selectPlace(place);});
+          list.appendChild(item);
+        })(data[i]);
+      }
+      list.style.display='block';
+    })
+    .catch(function(){list.style.display='none';});
+}
+
+function selectPlace(place){
+  var input=document.getElementById('fZone');
+  var list=document.getElementById('autocomplete-list');
+  var parts=place.display_name.split(',');
+  var shortName=parts.slice(0,3).join(',').trim();
+  input.value=shortName;
+  list.style.display='none';
+  geoCoords={lat:parseFloat(place.lat),lng:parseFloat(place.lon)};
+  document.getElementById('geoSt').textContent='Ubicacion seleccionada';
+  document.getElementById('geoSt').style.color='var(--teal-dk)';
+}
+
+// Init - runs after DOM is ready
+document.addEventListener('DOMContentLoaded',function(){
+  // Color picker
+  var colorOpts=document.querySelectorAll('.co');
+  for(var ci=0;ci<colorOpts.length;ci++){
+    (function(opt){
+      opt.addEventListener('click',function(){
+        for(var i=0;i<colorOpts.length;i++){colorOpts[i].classList.remove('sel');}
+        opt.classList.add('sel');
+        selColor=opt.dataset.color;
+        document.getElementById('fColorTxt').value='';
+      });
+    })(colorOpts[ci]);
+  }
+  // Size picker
+  var sizeOpts=document.querySelectorAll('.so');
+  for(var si=0;si<sizeOpts.length;si++){
+    (function(opt){
+      opt.addEventListener('click',function(){
+        for(var i=0;i<sizeOpts.length;i++){sizeOpts[i].classList.remove('sel');}
+        opt.classList.add('sel');
+        selSize=opt.dataset.size;
+      });
+    })(sizeOpts[si]);
+  }
+  setType('lost');
+  updateStats();
+  var fd=document.getElementById('fDate');
+  if(fd){fd.value=new Date().toISOString().split('T')[0];}
+  initAutocomplete();
+  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    var nd=document.getElementById('notifDot');
+    if(nd){nd.classList.add('show');}
+  }
+});
+</script>
+</body>
+</html>
